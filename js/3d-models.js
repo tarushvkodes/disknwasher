@@ -180,16 +180,16 @@ class RevolutionVisualizer {
         // Create disks
         for (let i = 0; i < numDisks; i++) {
             const x = lowerBound + i * stepSize;
-            const radius = this.evaluateFunction(funcStr, x);
+            const radius = Math.abs(this.evaluateFunction(funcStr, x)); // Take absolute value for radius
             
-            // Safety checks
-            if (isNaN(radius) || !isFinite(radius) || radius < 0) continue;
+            // Only skip if radius is NaN or infinite
+            if (isNaN(radius) || !isFinite(radius)) continue;
             
             try {
-                // Create a flat disk with radius equal to function value
+                // Create a flat disk with radius equal to absolute function value
                 const geometry = new THREE.CylinderGeometry(
-                    radius,    // top radius = function value
-                    radius,    // bottom radius = function value
+                    radius,    // top radius = |function value|
+                    radius,    // bottom radius = |function value|
                     0.05,      // very thin height for flat disk
                     32,        // segments
                     1,
@@ -213,13 +213,39 @@ class RevolutionVisualizer {
             }
         }
         
+        // Calculate maximum radius and range for better camera positioning
+        let maxRadius = 0;
+        let minX = Infinity;
+        let maxX = -Infinity;
+        
+        for (let i = 0; i < numDisks; i++) {
+            const x = lowerBound + i * stepSize;
+            const radius = Math.abs(this.evaluateFunction(funcStr, x));
+            if (!isNaN(radius) && isFinite(radius)) {
+                maxRadius = Math.max(maxRadius, radius);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+            }
+        }
+
         // Add the solid to the scene
         this.scene.add(this.solid);
         
-        // Adjust camera position based on maximum radius
-        const cameraDistance = Math.max(10, this.rotationAxis === 'x-axis' ? upperBound * 3 : 10);
-        this.camera.position.set(cameraDistance, cameraDistance, cameraDistance);
-        this.camera.lookAt(0, 0, 0);
+        // Adjust camera position based on function range and maximum radius
+        const xRange = maxX - minX;
+        const cameraDistance = Math.max(maxRadius * 3, xRange * 1.5);
+        const cameraY = maxRadius * 1.5;
+        
+        if (axis === 'x-axis') {
+            this.camera.position.set(xRange/2 + minX, cameraY, cameraDistance);
+        } else {
+            this.camera.position.set(cameraDistance, xRange/2 + minX, cameraY);
+        }
+        
+        // Look at the center of the range
+        this.camera.lookAt(axis === 'x-axis' ? (maxX + minX)/2 : 0, 
+                          axis === 'x-axis' ? 0 : (maxX + minX)/2, 
+                          0);
         
         if (this.controls) {
             this.controls.update();
@@ -279,22 +305,26 @@ class RevolutionVisualizer {
         // Create washer geometry and add to scene
         for (let i = 0; i < numWashers; i++) {
             const x = lowerBound + i * stepSize;
-            const outerRadius = this.evaluateFunction(outerFuncStr, x);
-            const innerRadius = this.evaluateFunction(innerFuncStr, x);
+            const outerRadius = Math.abs(this.evaluateFunction(outerFuncStr, x));
+            const innerRadius = Math.abs(this.evaluateFunction(innerFuncStr, x));
             
-            // Safety checks
-            if (isNaN(outerRadius) || !isFinite(outerRadius) || outerRadius < 0) continue;
-            if (isNaN(innerRadius) || !isFinite(innerRadius) || innerRadius < 0) continue;
+            // Only skip if values are NaN or infinite
+            if (isNaN(outerRadius) || !isFinite(outerRadius)) continue;
+            if (isNaN(innerRadius) || !isFinite(innerRadius)) continue;
             
             try {
                 // Create washer using RingGeometry for perfect flat disk with hole
+                // Ensure inner radius is always smaller than outer radius
+                const actualInnerRadius = Math.min(innerRadius, outerRadius);
+                const actualOuterRadius = Math.max(innerRadius, outerRadius);
+                
                 const ringGeometry = new THREE.RingGeometry(
-                    innerRadius,  // inner radius
-                    outerRadius,  // outer radius
-                    32,           // segments
-                    1,           // rings
-                    0,           // start angle
-                    Math.PI * 2  // end angle
+                    actualInnerRadius,  // inner radius
+                    actualOuterRadius,  // outer radius
+                    32,                 // segments
+                    1,                  // rings
+                    0,                  // start angle
+                    Math.PI * 2         // end angle
                 );
                 
                 const washer = new THREE.Mesh(ringGeometry, outerMaterial);
@@ -313,14 +343,45 @@ class RevolutionVisualizer {
                 console.error('Error creating washer:', error);
             }
         }
+
+        // Calculate maximum radius and range for better camera positioning
+        let maxRadius = 0;
+        let minX = Infinity;
+        let maxX = -Infinity;
         
+        for (let i = 0; i < numWashers; i++) {
+            const x = lowerBound + i * stepSize;
+            const outerRadius = Math.abs(this.evaluateFunction(outerFuncStr, x));
+            const innerRadius = Math.abs(this.evaluateFunction(innerFuncStr, x));
+            
+            if (!isNaN(outerRadius) && isFinite(outerRadius)) {
+                maxRadius = Math.max(maxRadius, outerRadius);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+            }
+            if (!isNaN(innerRadius) && isFinite(innerRadius)) {
+                maxRadius = Math.max(maxRadius, innerRadius);
+            }
+        }
+
         // Add the solid to the scene
         this.scene.add(this.solid);
         
-        // Adjust camera position based on maximum radius
-        const cameraDistance = Math.max(10, this.rotationAxis === 'x-axis' ? upperBound : 10);
-        this.camera.position.set(cameraDistance, cameraDistance, cameraDistance);
-        this.camera.lookAt(0, 0, 0);
+        // Adjust camera position based on function range and maximum radius
+        const xRange = maxX - minX;
+        const cameraDistance = Math.max(maxRadius * 3, xRange * 1.5);
+        const cameraY = maxRadius * 1.5;
+        
+        if (axis === 'x-axis') {
+            this.camera.position.set(xRange/2 + minX, cameraY, cameraDistance);
+        } else {
+            this.camera.position.set(cameraDistance, xRange/2 + minX, cameraY);
+        }
+        
+        // Look at the center of the range
+        this.camera.lookAt(axis === 'x-axis' ? (maxX + minX)/2 : 0, 
+                          axis === 'x-axis' ? 0 : (maxX + minX)/2, 
+                          0);
         
         if (this.controls) {
             this.controls.update();

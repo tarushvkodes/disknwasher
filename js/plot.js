@@ -23,9 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize washer method plots and controls
         initWasherMethod();
         
-        // Initialize example plots
-        initExamplePlots();
-        
         // Initialize calculator visualization
         initCalculatorVisualizations();
     }
@@ -486,11 +483,6 @@ function evaluateFunction(funcStr, value) {
         console.error(`Error evaluating function ${funcStr} with value ${value}:`, error);
         throw error;
     }
-}
-
-// Initialize plots for the example problems
-function initExamplePlots() {
-    // This will be implemented to show example visualizations
 }
 
 // Initialize calculator visualizations

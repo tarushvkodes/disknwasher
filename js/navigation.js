@@ -1,38 +1,62 @@
-// Navigation functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Get all navigation links
     const navLinks = document.querySelectorAll('nav a');
-    
-    // Get all sections
     const sections = document.querySelectorAll('section');
     
-    // Helper function to trigger resize events for WebGL canvases
-    function triggerResizeForCanvases(section) {
-        const canvases = section.querySelectorAll('canvas');
-        if (canvases.length > 0) {
-            window.dispatchEvent(new Event('resize'));
+    function reinitializeWebGL(section) {
+        const container = section.querySelector('.model-container, .intro-animation-container');
+        if (!container) return;
+        
+        const containerId = container.id;
+        if (!containerId) return;
+        
+        // Clear the container
+        container.innerHTML = '';
+        
+        // Reinitialize based on container ID
+        if (containerId === 'disk-method-3d') {
+            const diskVisualizer = new RevolutionVisualizer('disk-method-3d');
+            diskVisualizer.createDiskModel('x^2', 0, 2, 'x-axis');
+        } else if (containerId === 'washer-method-3d') {
+            const washerVisualizer = new RevolutionVisualizer('washer-method-3d');
+            washerVisualizer.createWasherModel('2+sin(x)', '1', 0, 2 * Math.PI, 'x-axis');
+        } else if (containerId === 'intro-animation') {
+            initIntroAnimation();
         }
     }
     
-    // Helper function to switch sections
     function switchToSection(targetSection) {
-        // First show the target section before hiding others
-        // This ensures proper WebGL initialization
+        const currentSection = document.querySelector('section.active');
+        if (currentSection === targetSection) return;
+        
+        // Prepare target section for animation
         targetSection.style.display = 'block';
-        targetSection.classList.add('active');
+        targetSection.style.opacity = '0';
+        targetSection.style.transform = 'translateY(20px)';
         
-        // Now hide other sections
-        sections.forEach(section => {
-            if (section !== targetSection) {
-                section.classList.remove('active');
-                section.style.display = 'none';
-            }
-        });
+        // Force a reflow
+        targetSection.offsetHeight;
         
-        // Trigger resize event for the newly visible section
+        // Animate out current section if it exists
+        if (currentSection) {
+            currentSection.style.transform = 'translateY(-20px)';
+            currentSection.style.opacity = '0';
+            
+            // After animation, hide the section
+            setTimeout(() => {
+                currentSection.style.display = 'none';
+                currentSection.classList.remove('active');
+            }, 500);
+        }
+        
+        // Animate in new section without scrolling
         setTimeout(() => {
-            triggerResizeForCanvases(targetSection);
-        }, 0);
+            targetSection.classList.add('active');
+            targetSection.style.transform = 'translateY(0)';
+            targetSection.style.opacity = '1';
+            
+            // Reinitialize WebGL context for the new section
+            reinitializeWebGL(targetSection);
+        }, currentSection ? 50 : 0);
     }
     
     // Add click event for each navigation link
@@ -40,51 +64,41 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             
-            // Get the target section from the href attribute
             const targetId = this.getAttribute('href');
             const targetSection = document.querySelector(targetId);
             
-            // Remove active class from all links
-            navLinks.forEach(link => link.classList.remove('active'));
+            // Update navigation state
+            navLinks.forEach(link => {
+                link.style.transition = 'opacity 0.3s ease';
+                link.style.opacity = '0.5';
+                link.classList.remove('active');
+            });
             
-            // Add active class to clicked link
+            this.style.opacity = '1';
             this.classList.add('active');
             
             // Switch to target section
             switchToSection(targetSection);
-            
-            // Scroll to the top of the section
-            window.scrollTo({
-                top: targetSection.offsetTop - 80,
-                behavior: 'smooth'
-            });
         });
     });
     
-    // Initialize the active section
+    // Initialize active section
     const activeSection = document.querySelector('section.active');
     if (activeSection) {
-        switchToSection(activeSection);
+        activeSection.style.opacity = '0';
+        activeSection.style.transform = 'translateY(20px)';
+        activeSection.style.display = 'block';
+        
+        // Force a reflow
+        activeSection.offsetHeight;
+        
+        // Animate in
+        activeSection.style.opacity = '1';
+        activeSection.style.transform = 'translateY(0)';
+        
+        // Initialize WebGL for the active section
+        reinitializeWebGL(activeSection);
     }
-    
-    // Handle solution buttons in the examples section
-    const solutionButtons = document.querySelectorAll('.show-solution-btn');
-    
-    solutionButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const solutionElement = this.parentNode.querySelector('.solution');
-            
-            if (solutionElement.style.display === 'block') {
-                solutionElement.style.display = 'none';
-                this.textContent = 'Show Solution';
-            } else {
-                solutionElement.style.display = 'block';
-                this.textContent = 'Hide Solution';
-                // Trigger resize in case there are any visualizations
-                triggerResizeForCanvases(solutionElement);
-            }
-        });
-    });
     
     // Handle calculator method selection
     const methodSelect = document.getElementById('calc-method');
@@ -93,12 +107,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (methodSelect) {
         methodSelect.addEventListener('change', function() {
-            if (this.value === 'disk') {
-                diskInputs.style.display = 'block';
-                washerInputs.style.display = 'none';
+            const showDisk = this.value === 'disk';
+            
+            diskInputs.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            washerInputs.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            
+            if (showDisk) {
+                washerInputs.style.opacity = '0';
+                washerInputs.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    washerInputs.style.display = 'none';
+                    diskInputs.style.display = 'block';
+                    diskInputs.style.opacity = '0';
+                    diskInputs.style.transform = 'translateY(10px)';
+                    diskInputs.offsetHeight;
+                    diskInputs.style.opacity = '1';
+                    diskInputs.style.transform = 'translateY(0)';
+                }, 300);
             } else {
-                diskInputs.style.display = 'none';
-                washerInputs.style.display = 'block';
+                diskInputs.style.opacity = '0';
+                diskInputs.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    diskInputs.style.display = 'none';
+                    washerInputs.style.display = 'block';
+                    washerInputs.style.opacity = '0';
+                    washerInputs.style.transform = 'translateY(10px)';
+                    washerInputs.offsetHeight;
+                    washerInputs.style.opacity = '1';
+                    washerInputs.style.transform = 'translateY(0)';
+                }, 300);
             }
         });
     }
