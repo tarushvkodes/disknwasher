@@ -78,14 +78,14 @@ function initIntroAnimation() {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xffffff);
 
-        // Create camera
+        // Create camera with better viewing angle
         const camera = new THREE.PerspectiveCamera(
             60,
             introContainer.clientWidth / introContainer.clientHeight,
             0.1,
             1000
         );
-        camera.position.set(3, 3, 5);
+        camera.position.set(4, 2, 4);
         camera.lookAt(0, 0, 0);
 
         // Create renderer
@@ -106,29 +106,34 @@ function initIntroAnimation() {
         directionalLight.position.set(1, 1, 1);
         scene.add(directionalLight);
 
-        // Create example solid of revolution
-        const curve = new THREE.EllipseCurve(
-            0, 0,            // Center x, y
-            1.5, 1,         // RadiusX, RadiusY
-            0, 2 * Math.PI,  // StartAngle, EndAngle
-            false           // Clockwise
-        );
+        // Create a more representative solid of revolution using a parabola
+        const points = [];
+        const numPoints = 50;
+        for (let i = 0; i < numPoints; i++) {
+            const t = i / (numPoints - 1);
+            const x = t * 2; // Scale x from 0 to 2
+            const y = 0.5 * x * x; // Parabola: y = 0.5x²
+            points.push(new THREE.Vector2(y, x)); // Swap x,y for proper orientation
+        }
 
-        const points = curve.getPoints(50);
-        const geometry = new THREE.LatheGeometry(
-            points.map(p => new THREE.Vector2(p.y, p.x)),
-            32
-        );
-
+        const geometry = new THREE.LatheGeometry(points, 32);
+        
         const material = new THREE.MeshPhongMaterial({
             color: 0x2997ff,
             transparent: true,
             opacity: 0.8,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            shininess: 50
         });
 
         const solid = new THREE.Mesh(geometry, material);
+        solid.rotation.x = Math.PI / 2; // Rotate to align with typical math orientation
         scene.add(solid);
+
+        // Add grid for reference
+        const gridHelper = new THREE.GridHelper(4, 10, 0x888888, 0xcccccc);
+        gridHelper.rotation.x = Math.PI / 2;
+        scene.add(gridHelper);
 
         // Add OrbitControls
         let controls;
@@ -137,6 +142,8 @@ function initIntroAnimation() {
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.enableZoom = true;
+            controls.minDistance = 3;
+            controls.maxDistance = 10;
         }
 
         // Animation loop
