@@ -6,6 +6,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get all sections
     const sections = document.querySelectorAll('section');
     
+    // Helper function to trigger resize events for WebGL canvases
+    function triggerResizeForCanvases(section) {
+        const canvases = section.querySelectorAll('canvas');
+        if (canvases.length > 0) {
+            window.dispatchEvent(new Event('resize'));
+        }
+    }
+    
+    // Helper function to switch sections
+    function switchToSection(targetSection) {
+        // First show the target section before hiding others
+        // This ensures proper WebGL initialization
+        targetSection.style.display = 'block';
+        targetSection.classList.add('active');
+        
+        // Now hide other sections
+        sections.forEach(section => {
+            if (section !== targetSection) {
+                section.classList.remove('active');
+                section.style.display = 'none';
+            }
+        });
+        
+        // Trigger resize event for the newly visible section
+        setTimeout(() => {
+            triggerResizeForCanvases(targetSection);
+        }, 0);
+    }
+    
     // Add click event for each navigation link
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
@@ -15,13 +44,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetId = this.getAttribute('href');
             const targetSection = document.querySelector(targetId);
             
-            // Remove active class from all links and sections
+            // Remove active class from all links
             navLinks.forEach(link => link.classList.remove('active'));
-            sections.forEach(section => section.classList.remove('active'));
             
-            // Add active class to the clicked link and target section
+            // Add active class to clicked link
             this.classList.add('active');
-            targetSection.classList.add('active');
+            
+            // Switch to target section
+            switchToSection(targetSection);
             
             // Scroll to the top of the section
             window.scrollTo({
@@ -30,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // Initialize the active section
+    const activeSection = document.querySelector('section.active');
+    if (activeSection) {
+        switchToSection(activeSection);
+    }
     
     // Handle solution buttons in the examples section
     const solutionButtons = document.querySelectorAll('.show-solution-btn');
@@ -44,6 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 solutionElement.style.display = 'block';
                 this.textContent = 'Hide Solution';
+                // Trigger resize in case there are any visualizations
+                triggerResizeForCanvases(solutionElement);
             }
         });
     });

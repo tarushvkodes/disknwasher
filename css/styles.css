@@ -145,10 +145,14 @@ main {
 section {
     padding: 20px 0;
     display: none;
+    /* Use opacity for smooth transitions */
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
 }
 
 section.active {
     display: block;
+    opacity: 1;
 }
 
 .content-wrapper {
@@ -221,10 +225,24 @@ section.active {
     display: flex;
     justify-content: center;
     align-items: center;
+    /* Ensure container dimensions are maintained even when parent is hidden */
+    min-height: 300px;
+    position: relative;
+    overflow: hidden;
 }
 
 .model-container {
     height: 400px;
+    min-height: 400px;
+}
+
+/* Ensure canvas elements maintain aspect ratio */
+.model-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .calculation-result {

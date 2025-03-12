@@ -9,6 +9,12 @@
     <!-- MathJax for LaTeX rendering -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- External libraries - Load these first -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.0/math.min.js"></script>
 </head>
 <body>
     <header>
@@ -355,21 +361,54 @@
     <footer>
         <div class="container">
             <p>&copy; Tarushv Kosgi 2025. All rights reserved.</p>
-            <p>Created for AP Calculus AB visualization | <a href="https://github.com/tarushvkodes/disknwasher" target="_blank">GitHub Repository</a></p>
+            <p>AP Calculus AB | <a href="https://github.com/tarushvkodes/disknwasher" target="_blank">GitHub Repository</a></p>
         </div>
     </footer>
     
-    <!-- External libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.0/math.min.js"></script>
-    
-    <!-- Custom scripts -->
+    <!-- Custom scripts - Load these after external libraries -->
     <script src="js/navigation.js"></script>
     <script src="js/plot.js"></script>
     <script src="js/3d-models.js"></script>
     <script src="js/calculator.js"></script>
     <script src="js/examples.js"></script>
     <script src="js/main.js"></script>
+    
+    <!-- Direct initialization script to ensure 3D models load -->
+    <script>
+        // Initialize after all scripts have loaded
+        window.addEventListener('load', function() {
+            console.log('Window fully loaded, ensuring 3D visualizations are initialized');
+            
+            // Check if THREE is loaded
+            if (typeof THREE === 'undefined') {
+                console.error('THREE.js is not available after window load');
+                return;
+            }
+            
+            // Force initialize disk method model
+            const diskContainer = document.getElementById('disk-method-3d');
+            if (diskContainer && !diskContainer.querySelector('canvas')) {
+                console.log('Directly initializing disk method visualizer');
+                try {
+                    const diskVisualizer = new RevolutionVisualizer('disk-method-3d');
+                    diskVisualizer.createDiskModel('x^2', 0, 2, 'x-axis');
+                } catch (error) {
+                    console.error('Error forcing disk visualizer initialization:', error);
+                }
+            }
+            
+            // Force initialize washer method model
+            const washerContainer = document.getElementById('washer-method-3d');
+            if (washerContainer && !washerContainer.querySelector('canvas')) {
+                console.log('Directly initializing washer method visualizer');
+                try {
+                    const washerVisualizer = new RevolutionVisualizer('washer-method-3d');
+                    washerVisualizer.createWasherModel('2+sin(x)', '1', 0, 2 * Math.PI, 'x-axis');
+                } catch (error) {
+                    console.error('Error forcing washer visualizer initialization:', error);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

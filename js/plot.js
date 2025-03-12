@@ -1,34 +1,161 @@
-// Plot functionality for 2D function visualization
-class FunctionPlotter {
-    constructor(containerId, options = {}) {
-        this.containerId = containerId;
-        this.container = document.getElementById(containerId);
-        this.options = Object.assign({
-            xMin: -5,
-            xMax: 5,
-            yMin: -5,
-            yMax: 5,
-            axisColor: '#888',
-            gridColor: '#ddd',
-            functionColor: '#2a69ac',
-            secondFunctionColor: '#e74c3c',
-            fillColor: 'rgba(127, 179, 213, 0.3)',
-        }, options);
-        
-        this.chart = null;
-        this.initChart();
+// Plot.js - Handles 2D curve plotting and initializes 3D visualization updates
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Plot.js loaded');
+    
+    // Wait for Chart.js to be available
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded');
+        return;
     }
     
-    initChart() {
-        const ctx = document.createElement('canvas');
-        ctx.width = this.container.clientWidth;
-        ctx.height = this.container.clientHeight;
-        this.container.appendChild(ctx);
+    // Initialize plots only after window is fully loaded
+    if (document.readyState === 'complete') {
+        initializePlots();
+    } else {
+        window.addEventListener('load', initializePlots);
+    }
+    
+    function initializePlots() {
+        // Initialize disk method plots and controls
+        initDiskMethod();
         
-        this.chart = new Chart(ctx, {
+        // Initialize washer method plots and controls
+        initWasherMethod();
+        
+        // Initialize example plots
+        initExamplePlots();
+        
+        // Initialize calculator visualization
+        initCalculatorVisualizations();
+    }
+});
+
+// Initialize the disk method visualization
+function initDiskMethod() {
+    const diskPlotContainer = document.getElementById('disk-method-plot');
+    if (!diskPlotContainer) {
+        console.warn('Disk method plot container not found');
+        return;
+    }
+    
+    console.log('Initializing disk method visualization');
+    
+    // Get the input elements
+    const functionInput = document.getElementById('disk-function');
+    const lowerBoundInput = document.getElementById('disk-lower-bound');
+    const upperBoundInput = document.getElementById('disk-upper-bound');
+    const rotationAxisSelect = document.getElementById('disk-rotation-axis');
+    const updateButton = document.getElementById('disk-update-btn');
+    const volumeResultDiv = document.getElementById('disk-volume-result');
+    
+    // Default values
+    let currentFunction = 'x^2';
+    let currentLowerBound = 0;
+    let currentUpperBound = 2;
+    let currentRotationAxis = 'x-axis';
+    
+    // Set initial input values if they're empty
+    if (!functionInput.value) functionInput.value = currentFunction;
+    if (!lowerBoundInput.value) lowerBoundInput.value = currentLowerBound;
+    if (!upperBoundInput.value) upperBoundInput.value = currentUpperBound;
+    
+    // Create initial 2D plot
+    createDiskMethodPlot();
+    
+    // Ensure 3D visualization is initialized (might have been created by 3d-models.js)
+    setTimeout(() => {
+        if (typeof window.updateDiskModel === 'function') {
+            window.updateDiskModel(currentFunction, currentLowerBound, currentUpperBound, currentRotationAxis);
+            console.log('Initial disk 3D model updated');
+        } else {
+            console.warn('updateDiskModel function not available');
+            // Try to force create the 3D model
+            const diskContainer = document.getElementById('disk-method-3d');
+            if (diskContainer && typeof RevolutionVisualizer === 'function') {
+                console.log('Creating disk visualizer directly from plot.js');
+                try {
+                    const diskVisualizer = new RevolutionVisualizer('disk-method-3d');
+                    diskVisualizer.createDiskModel(currentFunction, currentLowerBound, currentUpperBound, currentRotationAxis);
+                    
+                    // Store the function for future updates
+                    window.updateDiskModel = (funcStr, lowerBound, upperBound, rotationAxis) => {
+                        console.log('Updating disk model:', funcStr, lowerBound, upperBound, rotationAxis);
+                        diskVisualizer.createDiskModel(funcStr, lowerBound, upperBound, rotationAxis);
+                    };
+                } catch (error) {
+                    console.error('Error creating disk visualizer:', error);
+                }
+            }
+        }
+    }, 1000);
+    
+    // Add event listener to the update button
+    updateButton.addEventListener('click', function() {
+        currentFunction = functionInput.value;
+        currentLowerBound = parseFloat(lowerBoundInput.value);
+        currentUpperBound = parseFloat(upperBoundInput.value);
+        currentRotationAxis = rotationAxisSelect.value;
+        
+        console.log('Updating disk method visualization:', 
+                    currentFunction, currentLowerBound, currentUpperBound, currentRotationAxis);
+        
+        // Update 2D plot
+        createDiskMethodPlot();
+        
+        // Update 3D model
+        if (typeof window.updateDiskModel === 'function') {
+            window.updateDiskModel(currentFunction, currentLowerBound, currentUpperBound, currentRotationAxis);
+        } else {
+            console.warn('updateDiskModel function not available');
+        }
+        
+        // Update volume calculation
+        calculateDiskVolume();
+    });
+    
+    // Calculate and display the initial volume
+    calculateDiskVolume();
+    
+    // Function to create the disk method plot
+    function createDiskMethodPlot() {
+        // Generate points for plotting
+        const plotPoints = [];
+        const numPoints = 100;
+        const step = (currentUpperBound - currentLowerBound) / numPoints;
+        
+        for (let i = 0; i <= numPoints; i++) {
+            const x = currentLowerBound + i * step;
+            try {
+                const y = evaluateFunction(currentFunction, x);
+                plotPoints.push({ x, y });
+            } catch (error) {
+                console.warn('Error evaluating function at x =', x, ':', error);
+            }
+        }
+        
+        // Create a new Chart.js plot
+        if (window.diskMethodChart) {
+            window.diskMethodChart.destroy();
+        }
+        
+        const ctx = document.createElement('canvas');
+        ctx.width = diskPlotContainer.clientWidth;
+        ctx.height = 300;
+        diskPlotContainer.innerHTML = '';
+        diskPlotContainer.appendChild(ctx);
+        
+        window.diskMethodChart = new Chart(ctx, {
             type: 'line',
             data: {
-                datasets: []
+                datasets: [{
+                    label: `f(x) = ${currentFunction}`,
+                    data: plotPoints,
+                    borderColor: '#2a69ac',
+                    backgroundColor: 'rgba(42, 105, 172, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
             },
             options: {
                 responsive: true,
@@ -36,36 +163,17 @@ class FunctionPlotter {
                 scales: {
                     x: {
                         type: 'linear',
-                        position: 'center',
-                        min: this.options.xMin,
-                        max: this.options.xMax,
-                        grid: {
-                            color: this.options.gridColor,
-                            borderColor: this.options.axisColor,
-                            tickColor: this.options.axisColor
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'x'
                         }
                     },
                     y: {
                         type: 'linear',
-                        position: 'center',
-                        min: this.options.yMin,
-                        max: this.options.yMax,
-                        grid: {
-                            color: this.options.gridColor,
-                            borderColor: this.options.axisColor,
-                            tickColor: this.options.axisColor
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `(${context.parsed.x.toFixed(2)}, ${context.parsed.y.toFixed(2)})`;
-                            }
+                        title: {
+                            display: true,
+                            text: 'y'
                         }
                     }
                 }
@@ -73,341 +181,500 @@ class FunctionPlotter {
         });
     }
     
-    evaluateFunction(funcStr, x) {
+    // Function to calculate the volume using disk method
+    function calculateDiskVolume() {
         try {
-            // Replace common math functions with Math equivalents
-            const scope = {
-                x: x,
-                sin: Math.sin,
-                cos: Math.cos,
-                tan: Math.tan,
-                sqrt: Math.sqrt,
-                abs: Math.abs,
-                PI: Math.PI,
-                E: Math.E
-            };
+            // Number of slices for numerical integration
+            const numSlices = 1000;
+            const dx = (currentUpperBound - currentLowerBound) / numSlices;
             
-            return math.evaluate(funcStr, scope);
+            let volume = 0;
+            
+            for (let i = 0; i < numSlices; i++) {
+                const x = currentLowerBound + i * dx;
+                const y = evaluateFunction(currentFunction, x);
+                
+                // For disk method, volume element is π * r^2 * dx
+                // where r is the value of the function
+                volume += Math.PI * y * y * dx;
+            }
+            
+            // Display the result
+            if (volumeResultDiv) {
+                const formula = `\\( V = \\pi \\int_{${currentLowerBound}}^{${currentUpperBound}} (${currentFunction})^2 \\, dx \\approx ${volume.toFixed(2)} \\)`;
+                volumeResultDiv.innerHTML = `<span class="math-inline">${formula}</span>`;
+                
+                // Update MathJax rendering
+                if (window.MathJax) {
+                    MathJax.typesetPromise([volumeResultDiv]).catch(err => console.error('MathJax error:', err));
+                }
+            }
         } catch (error) {
-            console.error('Error evaluating function:', error);
-            return NaN;
-        }
-    }
-    
-    plotFunction(funcStr, options = {}) {
-        // Clear existing datasets if specified
-        if (options.clear) {
-            this.chart.data.datasets = [];
-        }
-        
-        const color = options.color || this.options.functionColor;
-        const label = options.label || 'f(x)';
-        const fill = options.fill || false;
-        const fillColor = options.fillColor || this.options.fillColor;
-        
-        // Generate data points
-        const xMin = options.xMin || this.options.xMin;
-        const xMax = options.xMax || this.options.xMax;
-        const steps = options.steps || 100;
-        const stepSize = (xMax - xMin) / steps;
-        
-        const data = [];
-        for (let x = xMin; x <= xMax; x += stepSize) {
-            const y = this.evaluateFunction(funcStr, x);
-            if (!isNaN(y) && isFinite(y)) {
-                data.push({ x, y });
+            console.error('Error calculating disk volume:', error);
+            if (volumeResultDiv) {
+                volumeResultDiv.textContent = `Error: ${error.message}`;
             }
         }
-        
-        // Add the new dataset
-        this.chart.data.datasets.push({
-            label: label,
-            data: data,
-            borderColor: color,
-            borderWidth: 2,
-            pointRadius: 0,
-            fill: fill,
-            backgroundColor: fillColor,
-            tension: 0.4
-        });
-        
-        // Update the chart
-        this.chart.update();
-        
-        return data; // Return the generated data for further processing
-    }
-    
-    plotRegion(func1Str, func2Str, options = {}) {
-        // Clear existing datasets if specified
-        if (options.clear) {
-            this.chart.data.datasets = [];
-        }
-        
-        const xMin = options.xMin || this.options.xMin;
-        const xMax = options.xMax || this.options.xMax;
-        
-        // Plot the first function
-        const func1Data = this.plotFunction(func1Str, {
-            color: this.options.functionColor,
-            label: options.label1 || 'f(x)',
-            xMin: xMin,
-            xMax: xMax
-        });
-        
-        // Plot the second function
-        const func2Data = this.plotFunction(func2Str, {
-            color: this.options.secondFunctionColor,
-            label: options.label2 || 'g(x)',
-            xMin: xMin,
-            xMax: xMax
-        });
-        
-        // Create a filled region between the functions
-        const filledRegion = [];
-        const steps = options.steps || 100;
-        const stepSize = (xMax - xMin) / steps;
-        
-        for (let x = xMin; x <= xMax; x += stepSize) {
-            const y1 = this.evaluateFunction(func1Str, x);
-            const y2 = this.evaluateFunction(func2Str, x);
-            
-            if (!isNaN(y1) && !isNaN(y2) && isFinite(y1) && isFinite(y2)) {
-                filledRegion.push({ x, y1, y2 });
-            }
-        }
-        
-        // Add the filled region dataset
-        this.chart.data.datasets.push({
-            label: 'Region',
-            data: filledRegion.map(point => ({
-                x: point.x,
-                y: Math.max(point.y1, point.y2)
-            })),
-            borderColor: 'transparent',
-            backgroundColor: this.options.fillColor,
-            pointRadius: 0,
-            fill: '+1'
-        });
-        
-        this.chart.data.datasets.push({
-            label: 'Region Bottom',
-            data: filledRegion.map(point => ({
-                x: point.x,
-                y: Math.min(point.y1, point.y2)
-            })),
-            borderColor: 'transparent',
-            backgroundColor: 'transparent',
-            pointRadius: 0,
-            fill: false
-        });
-        
-        // Update the chart
-        this.chart.update();
-    }
-    
-    addRotationAxis(axis = 'x', value = 0, options = {}) {
-        const color = options.color || '#f39c12';
-        const width = options.width || 2;
-        const dash = options.dash || [5, 5];
-        
-        let data = [];
-        
-        if (axis === 'x') {
-            // Horizontal line at y = value
-            data = [
-                { x: this.options.xMin, y: value },
-                { x: this.options.xMax, y: value }
-            ];
-        } else {
-            // Vertical line at x = value
-            data = [
-                { x: value, y: this.options.yMin },
-                { x: value, y: this.options.yMax }
-            ];
-        }
-        
-        this.chart.data.datasets.push({
-            label: `${axis}-axis`,
-            data: data,
-            borderColor: color,
-            borderWidth: width,
-            borderDash: dash,
-            pointRadius: 0,
-            fill: false
-        });
-        
-        this.chart.update();
-    }
-    
-    clear() {
-        this.chart.data.datasets = [];
-        this.chart.update();
-    }
-    
-    updateBounds(xMin, xMax, yMin, yMax) {
-        this.options.xMin = xMin;
-        this.options.xMax = xMax;
-        this.options.yMin = yMin;
-        this.options.yMax = yMax;
-        
-        this.chart.options.scales.x.min = xMin;
-        this.chart.options.scales.x.max = xMax;
-        this.chart.options.scales.y.min = yMin;
-        this.chart.options.scales.y.max = yMax;
-        
-        this.chart.update();
     }
 }
 
-// Initialize plots when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize disk method plot
-    if (document.getElementById('disk-method-plot')) {
-        const diskPlot = new FunctionPlotter('disk-method-plot', {
-            xMin: -0.5,
-            xMax: 2.5,
-            yMin: -0.5,
-            yMax: 5
-        });
-        
-        // Initial plot
-        diskPlot.plotFunction('x^2', { clear: true });
-        diskPlot.addRotationAxis('x', 0);
-        
-        // Set up the update button
-        const diskUpdateBtn = document.getElementById('disk-update-btn');
-        diskUpdateBtn.addEventListener('click', function() {
-            const functionInput = document.getElementById('disk-function').value;
-            const lowerBound = parseFloat(document.getElementById('disk-lower-bound').value);
-            const upperBound = parseFloat(document.getElementById('disk-upper-bound').value);
-            const rotationAxis = document.getElementById('disk-rotation-axis').value;
-            
-            diskPlot.clear();
-            diskPlot.updateBounds(
-                Math.min(-0.5, lowerBound - 1),
-                Math.max(2.5, upperBound + 1),
-                -0.5,
-                Math.max(5, diskPlot.evaluateFunction(functionInput, upperBound) + 1)
+// Initialize the washer method visualization
+function initWasherMethod() {
+    const washerPlotContainer = document.getElementById('washer-method-plot');
+    if (!washerPlotContainer) {
+        console.warn('Washer method plot container not found');
+        return;
+    }
+    
+    console.log('Initializing washer method visualization');
+    
+    // Get the input elements
+    const outerFunctionInput = document.getElementById('washer-outer-function');
+    const innerFunctionInput = document.getElementById('washer-inner-function');
+    const lowerBoundInput = document.getElementById('washer-lower-bound');
+    const upperBoundInput = document.getElementById('washer-upper-bound');
+    const rotationAxisSelect = document.getElementById('washer-rotation-axis');
+    const updateButton = document.getElementById('washer-update-btn');
+    const volumeResultDiv = document.getElementById('washer-volume-result');
+    
+    // Default values
+    let currentOuterFunction = '2+sin(x)';
+    let currentInnerFunction = '1';
+    let currentLowerBound = 0;
+    let currentUpperBound = 2 * Math.PI;
+    let currentRotationAxis = 'x-axis';
+    
+    // Set initial input values if they're empty
+    if (!outerFunctionInput.value) outerFunctionInput.value = currentOuterFunction;
+    if (!innerFunctionInput.value) innerFunctionInput.value = currentInnerFunction;
+    if (!lowerBoundInput.value) lowerBoundInput.value = currentLowerBound;
+    if (!upperBoundInput.value) upperBoundInput.value = currentUpperBound;
+    
+    // Create initial 2D plot
+    createWasherMethodPlot();
+    
+    // Ensure 3D visualization is initialized (might have been created by 3d-models.js)
+    setTimeout(() => {
+        if (typeof window.updateWasherModel === 'function') {
+            window.updateWasherModel(
+                currentOuterFunction,
+                currentInnerFunction,
+                currentLowerBound,
+                currentUpperBound,
+                currentRotationAxis
             );
-            
-            diskPlot.plotFunction(functionInput, { clear: true });
-            
-            if (rotationAxis === 'x-axis') {
-                diskPlot.addRotationAxis('x', 0);
-            } else {
-                diskPlot.addRotationAxis('y', 0);
+            console.log('Initial washer 3D model updated');
+        } else {
+            console.warn('updateWasherModel function not available');
+            // Try to force create the 3D model
+            const washerContainer = document.getElementById('washer-method-3d');
+            if (washerContainer && typeof RevolutionVisualizer === 'function') {
+                console.log('Creating washer visualizer directly from plot.js');
+                try {
+                    const washerVisualizer = new RevolutionVisualizer('washer-method-3d');
+                    washerVisualizer.createWasherModel(
+                        currentOuterFunction,
+                        currentInnerFunction,
+                        currentLowerBound,
+                        currentUpperBound,
+                        currentRotationAxis
+                    );
+                    
+                    // Store the function for future updates
+                    window.updateWasherModel = (outerFunc, innerFunc, lowerBound, upperBound, rotationAxis) => {
+                        console.log('Updating washer model:', outerFunc, innerFunc, lowerBound, upperBound, rotationAxis);
+                        washerVisualizer.createWasherModel(outerFunc, innerFunc, lowerBound, upperBound, rotationAxis);
+                    };
+                } catch (error) {
+                    console.error('Error creating washer visualizer:', error);
+                }
             }
-            
-            // Update 3D model
-            if (window.updateDiskModel) {
-                window.updateDiskModel(functionInput, lowerBound, upperBound, rotationAxis);
-            }
-            
-            // Update volume calculation
-            if (window.updateDiskVolume) {
-                window.updateDiskVolume(functionInput, lowerBound, upperBound, rotationAxis);
-            }
-        });
-    }
+        }
+    }, 1000);
     
-    // Initialize washer method plot
-    if (document.getElementById('washer-method-plot')) {
-        const washerPlot = new FunctionPlotter('washer-method-plot', {
-            xMin: -0.5,
-            xMax: 7,
-            yMin: -0.5,
-            yMax: 3.5
-        });
+    // Add event listener to the update button
+    updateButton.addEventListener('click', function() {
+        currentOuterFunction = outerFunctionInput.value;
+        currentInnerFunction = innerFunctionInput.value;
+        currentLowerBound = parseFloat(lowerBoundInput.value);
+        currentUpperBound = parseFloat(upperBoundInput.value);
+        currentRotationAxis = rotationAxisSelect.value;
         
-        // Initial plot
-        washerPlot.plotRegion('2+sin(x)', '1', {
-            xMin: 0,
-            xMax: 2 * Math.PI,
-            clear: true,
-            label1: 'Outer: 2+sin(x)',
-            label2: 'Inner: 1'
-        });
-        washerPlot.addRotationAxis('x', 0);
-        
-        // Set up the update button
-        const washerUpdateBtn = document.getElementById('washer-update-btn');
-        washerUpdateBtn.addEventListener('click', function() {
-            const outerFunction = document.getElementById('washer-outer-function').value;
-            const innerFunction = document.getElementById('washer-inner-function').value;
-            const lowerBound = parseFloat(document.getElementById('washer-lower-bound').value);
-            const upperBound = parseFloat(document.getElementById('washer-upper-bound').value);
-            const rotationAxis = document.getElementById('washer-rotation-axis').value;
-            
-            washerPlot.clear();
-            
-            // Evaluate functions to determine y bounds
-            let maxY = 3.5;
-            for (let x = lowerBound; x <= upperBound; x += (upperBound - lowerBound) / 20) {
-                const outerY = washerPlot.evaluateFunction(outerFunction, x);
-                maxY = Math.max(maxY, outerY + 0.5);
+        // Handle special case of PI in input
+        if (upperBoundInput.value.includes('PI')) {
+            try {
+                currentUpperBound = eval(upperBoundInput.value.replace('PI', 'Math.PI'));
+            } catch (error) {
+                console.error('Error parsing PI in upper bound:', error);
             }
-            
-            washerPlot.updateBounds(
-                Math.min(-0.5, lowerBound - 1),
-                Math.max(7, upperBound + 1),
-                -0.5,
-                maxY
+        }
+        
+        console.log('Updating washer method visualization:', 
+                    currentOuterFunction, currentInnerFunction, 
+                    currentLowerBound, currentUpperBound, currentRotationAxis);
+        
+        // Update 2D plot
+        createWasherMethodPlot();
+        
+        // Update 3D model
+        if (typeof window.updateWasherModel === 'function') {
+            window.updateWasherModel(
+                currentOuterFunction,
+                currentInnerFunction,
+                currentLowerBound,
+                currentUpperBound,
+                currentRotationAxis
             );
-            
-            washerPlot.plotRegion(outerFunction, innerFunction, {
-                xMin: lowerBound,
-                xMax: upperBound,
-                clear: true,
-                label1: `Outer: ${outerFunction}`,
-                label2: `Inner: ${innerFunction}`
-            });
-            
-            if (rotationAxis === 'x-axis') {
-                washerPlot.addRotationAxis('x', 0);
-            } else {
-                washerPlot.addRotationAxis('y', 0);
+        } else {
+            console.warn('updateWasherModel function not available');
+        }
+        
+        // Update volume calculation
+        calculateWasherVolume();
+    });
+    
+    // Calculate and display the initial volume
+    calculateWasherVolume();
+    
+    // Function to create the washer method plot
+    function createWasherMethodPlot() {
+        // Generate points for plotting both functions
+        const outerPoints = [];
+        const innerPoints = [];
+        const numPoints = 100;
+        
+        // Check for PI in bounds and convert
+        let lowerBoundValue = currentLowerBound;
+        let upperBoundValue = currentUpperBound;
+        
+        // Generate points for both functions
+        const step = (upperBoundValue - lowerBoundValue) / numPoints;
+        
+        for (let i = 0; i <= numPoints; i++) {
+            const x = lowerBoundValue + i * step;
+            try {
+                const outerY = evaluateFunction(currentOuterFunction, x);
+                const innerY = evaluateFunction(currentInnerFunction, x);
+                outerPoints.push({ x, y: outerY });
+                innerPoints.push({ x, y: innerY });
+            } catch (error) {
+                console.warn('Error evaluating function at x =', x, ':', error);
             }
-            
-            // Update 3D model
-            if (window.updateWasherModel) {
-                window.updateWasherModel(outerFunction, innerFunction, lowerBound, upperBound, rotationAxis);
-            }
-            
-            // Update volume calculation
-            if (window.updateWasherVolume) {
-                window.updateWasherVolume(outerFunction, innerFunction, lowerBound, upperBound, rotationAxis);
+        }
+        
+        // Create a new Chart.js plot
+        if (window.washerMethodChart) {
+            window.washerMethodChart.destroy();
+        }
+        
+        const ctx = document.createElement('canvas');
+        ctx.width = washerPlotContainer.clientWidth;
+        ctx.height = 300;
+        washerPlotContainer.innerHTML = '';
+        washerPlotContainer.appendChild(ctx);
+        
+        window.washerMethodChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: `Outer: f(x) = ${currentOuterFunction}`,
+                        data: outerPoints,
+                        borderColor: '#2a69ac',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: `Inner: g(x) = ${currentInnerFunction}`,
+                        data: innerPoints,
+                        borderColor: '#e74c3c',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'Region',
+                        data: outerPoints,
+                        borderColor: 'rgba(0,0,0,0)',
+                        backgroundColor: 'rgba(42, 105, 172, 0.2)',
+                        fill: '+1',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'x'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'y'
+                        }
+                    }
+                }
             }
         });
     }
     
-    // Initialize example plots
-    if (document.getElementById('example1-plot')) {
-        const example1Plot = new FunctionPlotter('example1-plot', {
-            xMin: -0.5,
-            xMax: 2.5,
-            yMin: -0.5,
-            yMax: 5
-        });
+    // Function to calculate the volume using washer method
+    function calculateWasherVolume() {
+        try {
+            // Number of slices for numerical integration
+            const numSlices = 1000;
+            const dx = (currentUpperBound - currentLowerBound) / numSlices;
+            
+            let volume = 0;
+            
+            for (let i = 0; i < numSlices; i++) {
+                const x = currentLowerBound + i * dx;
+                const outerY = evaluateFunction(currentOuterFunction, x);
+                const innerY = evaluateFunction(currentInnerFunction, x);
+                
+                // For washer method, volume element is π * (R^2 - r^2) * dx
+                // where R is the outer radius and r is the inner radius
+                volume += Math.PI * (outerY * outerY - innerY * innerY) * dx;
+            }
+            
+            // Display the result
+            if (volumeResultDiv) {
+                const formula = `\\( V = \\pi \\int_{${currentLowerBound}}^{${currentUpperBound}} [(${currentOuterFunction})^2 - (${currentInnerFunction})^2] \\, dx \\approx ${volume.toFixed(2)} \\)`;
+                volumeResultDiv.innerHTML = `<span class="math-inline">${formula}</span>`;
+                
+                // Update MathJax rendering
+                if (window.MathJax) {
+                    MathJax.typesetPromise([volumeResultDiv]).catch(err => console.error('MathJax error:', err));
+                }
+            }
+        } catch (error) {
+            console.error('Error calculating washer volume:', error);
+            if (volumeResultDiv) {
+                volumeResultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+    }
+}
+
+// Helper function to evaluate a mathematical function string
+function evaluateFunction(funcStr, value) {
+    try {
+        // Replace common math functions with Math equivalents
+        const scope = {
+            x: value,
+            sin: Math.sin,
+            cos: Math.cos,
+            tan: Math.tan,
+            sqrt: Math.sqrt,
+            abs: Math.abs,
+            PI: Math.PI,
+            E: Math.E
+        };
         
-        example1Plot.plotFunction('x^2', { clear: true });
-        example1Plot.addRotationAxis('x', 0);
+        const result = math.evaluate(funcStr, scope);
+        return result;
+    } catch (error) {
+        console.error(`Error evaluating function ${funcStr} with value ${value}:`, error);
+        throw error;
+    }
+}
+
+// Initialize plots for the example problems
+function initExamplePlots() {
+    // This will be implemented to show example visualizations
+}
+
+// Initialize calculator visualizations
+function initCalculatorVisualizations() {
+    const plotContainer = document.getElementById('calc-plot');
+    const formulaDiv = document.getElementById('calc-formula');
+    const calculateBtn = document.getElementById('calculate-btn');
+    const methodSelect = document.getElementById('calc-method');
+    
+    if (!plotContainer || !calculateBtn) {
+        console.warn('Calculator plot container or button not found');
+        return;
     }
     
-    if (document.getElementById('example2-plot')) {
-        const example2Plot = new FunctionPlotter('example2-plot', {
-            xMin: -0.5,
-            xMax: 1.5,
-            yMin: -0.5,
-            yMax: 1.5
-        });
+    calculateBtn.addEventListener('click', function() {
+        const method = methodSelect.value;
+        const axis = document.getElementById('calc-axis').value;
+        const lowerBound = parseFloat(document.getElementById('calc-lower').value);
+        const upperBound = parseFloat(document.getElementById('calc-upper').value);
         
-        example2Plot.plotRegion('x', 'x^2', {
-            xMin: 0,
-            xMax: 1,
-            clear: true,
-            label1: 'y = x',
-            label2: 'y = x²'
-        });
-        example2Plot.addRotationAxis('y', 0);
+        let datasets = [];
+        
+        if (method === 'disk') {
+            const funcStr = document.getElementById('calc-disk-function').value;
+            datasets = createDiskMethodDatasets(funcStr, lowerBound, upperBound);
+        } else {
+            const outerFuncStr = document.getElementById('calc-washer-outer').value;
+            const innerFuncStr = document.getElementById('calc-washer-inner').value;
+            datasets = createWasherMethodDatasets(outerFuncStr, innerFuncStr, lowerBound, upperBound);
+        }
+        
+        // Create plot
+        createCalculatorPlot(datasets, plotContainer);
+        
+        // Create 3D visualization
+        if (method === 'disk') {
+            const funcStr = document.getElementById('calc-disk-function').value;
+            createCalculator3DModel(funcStr, lowerBound, upperBound, axis);
+        } else {
+            const outerFuncStr = document.getElementById('calc-washer-outer').value;
+            const innerFuncStr = document.getElementById('calc-washer-inner').value;
+            createCalculator3DWasherModel(outerFuncStr, innerFuncStr, lowerBound, upperBound, axis);
+        }
+    });
+    
+    function createDiskMethodDatasets(funcStr, lowerBound, upperBound) {
+        const plotPoints = [];
+        const numPoints = 100;
+        const step = (upperBound - lowerBound) / numPoints;
+        
+        for (let i = 0; i <= numPoints; i++) {
+            const x = lowerBound + i * step;
+            try {
+                const y = evaluateFunction(funcStr, x);
+                plotPoints.push({ x, y });
+            } catch (error) {
+                console.warn('Error evaluating function at x =', x, ':', error);
+            }
+        }
+        
+        return [{
+            label: `f(x) = ${funcStr}`,
+            data: plotPoints,
+            borderColor: '#2a69ac',
+            backgroundColor: 'rgba(42, 105, 172, 0.2)',
+            fill: true,
+            tension: 0.4
+        }];
     }
-});
+    
+    function createWasherMethodDatasets(outerFuncStr, innerFuncStr, lowerBound, upperBound) {
+        const outerPoints = [];
+        const innerPoints = [];
+        const numPoints = 100;
+        const step = (upperBound - lowerBound) / numPoints;
+        
+        for (let i = 0; i <= numPoints; i++) {
+            const x = lowerBound + i * step;
+            try {
+                const outerY = evaluateFunction(outerFuncStr, x);
+                const innerY = evaluateFunction(innerFuncStr, x);
+                outerPoints.push({ x, y: outerY });
+                innerPoints.push({ x, y: innerY });
+            } catch (error) {
+                console.warn('Error evaluating function at x =', x, ':', error);
+            }
+        }
+        
+        return [
+            {
+                label: `Outer: f(x) = ${outerFuncStr}`,
+                data: outerPoints,
+                borderColor: '#2a69ac',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false
+            },
+            {
+                label: `Inner: g(x) = ${innerFuncStr}`,
+                data: innerPoints,
+                borderColor: '#e74c3c',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: false
+            },
+            {
+                label: 'Region',
+                data: outerPoints,
+                borderColor: 'rgba(0,0,0,0)',
+                backgroundColor: 'rgba(42, 105, 172, 0.2)',
+                fill: '+1',
+                tension: 0.4
+            }
+        ];
+    }
+    
+    function createCalculatorPlot(datasets, container) {
+        // Destroy existing chart if it exists
+        if (window.calculatorChart) {
+            window.calculatorChart.destroy();
+        }
+        
+        const ctx = document.createElement('canvas');
+        ctx.width = container.clientWidth;
+        ctx.height = container.clientHeight;
+        container.innerHTML = '';
+        container.appendChild(ctx);
+        
+        window.calculatorChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'x'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'y'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function createCalculator3DModel(funcStr, lowerBound, upperBound, axis) {
+        const container = document.getElementById('calc-3d');
+        if (!container) return;
+        
+        if (typeof RevolutionVisualizer === 'function') {
+            try {
+                if (!window.calculatorVisualizer) {
+                    window.calculatorVisualizer = new RevolutionVisualizer('calc-3d');
+                }
+                window.calculatorVisualizer.createDiskModel(funcStr, lowerBound, upperBound, axis);
+            } catch (error) {
+                console.error('Error creating calculator 3D model:', error);
+            }
+        }
+    }
+    
+    function createCalculator3DWasherModel(outerFuncStr, innerFuncStr, lowerBound, upperBound, axis) {
+        const container = document.getElementById('calc-3d');
+        if (!container) return;
+        
+        if (typeof RevolutionVisualizer === 'function') {
+            try {
+                if (!window.calculatorVisualizer) {
+                    window.calculatorVisualizer = new RevolutionVisualizer('calc-3d');
+                }
+                window.calculatorVisualizer.createWasherModel(outerFuncStr, innerFuncStr, lowerBound, upperBound, axis);
+            } catch (error) {
+                console.error('Error creating calculator 3D washer model:', error);
+            }
+        }
+    }
+}
