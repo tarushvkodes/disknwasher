@@ -121,15 +121,26 @@ function initDiskMethod() {
         const numPoints = 100;
         const step = (currentUpperBound - currentLowerBound) / numPoints;
         
+        // Track min and max y values
+        let minY = Infinity;
+        let maxY = -Infinity;
+        
         for (let i = 0; i <= numPoints; i++) {
             const x = currentLowerBound + i * step;
             try {
                 const y = evaluateFunction(currentFunction, x);
                 plotPoints.push({ x, y });
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
             } catch (error) {
                 console.warn('Error evaluating function at x =', x, ':', error);
             }
         }
+        
+        // Add padding to y-axis range
+        const yPadding = (maxY - minY) * 0.1;
+        const yMin = Math.min(minY - yPadding, 0); // Ensure 0 is always visible
+        const yMax = maxY + yPadding;
         
         // Create a new Chart.js plot
         if (window.diskMethodChart) {
@@ -164,6 +175,15 @@ function initDiskMethod() {
                         title: {
                             display: true,
                             text: 'x'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (Math.abs(value) < 0.01) return '0';
+                                return value.toFixed(1);
+                            }
                         }
                     },
                     y: {
@@ -171,7 +191,23 @@ function initDiskMethod() {
                         title: {
                             display: true,
                             text: 'y'
+                        },
+                        min: yMin,
+                        max: yMax,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (Math.abs(value) < 0.01) return '0';
+                                return value.toFixed(1);
+                            }
                         }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
                     }
                 }
             }
@@ -340,24 +376,30 @@ function initWasherMethod() {
         const innerPoints = [];
         const numPoints = 100;
         
-        // Check for PI in bounds and convert
-        let lowerBoundValue = currentLowerBound;
-        let upperBoundValue = currentUpperBound;
+        // Track min and max y values
+        let minY = Infinity;
+        let maxY = -Infinity;
         
-        // Generate points for both functions
-        const step = (upperBoundValue - lowerBoundValue) / numPoints;
+        const step = (currentUpperBound - currentLowerBound) / numPoints;
         
         for (let i = 0; i <= numPoints; i++) {
-            const x = lowerBoundValue + i * step;
+            const x = currentLowerBound + i * step;
             try {
                 const outerY = evaluateFunction(currentOuterFunction, x);
                 const innerY = evaluateFunction(currentInnerFunction, x);
                 outerPoints.push({ x, y: outerY });
                 innerPoints.push({ x, y: innerY });
+                minY = Math.min(minY, outerY, innerY);
+                maxY = Math.max(maxY, outerY, innerY);
             } catch (error) {
                 console.warn('Error evaluating function at x =', x, ':', error);
             }
         }
+        
+        // Add padding to y-axis range
+        const yPadding = (maxY - minY) * 0.1;
+        const yMin = Math.min(minY - yPadding, 0); // Ensure 0 is always visible
+        const yMax = maxY + yPadding;
         
         // Create a new Chart.js plot
         if (window.washerMethodChart) {
@@ -396,7 +438,7 @@ function initWasherMethod() {
                         borderColor: 'rgba(0,0,0,0)',
                         backgroundColor: 'rgba(42, 105, 172, 0.2)',
                         fill: '+1',
-                        tension: 0.4
+                        tension: 0.4,
                     }
                 ]
             },
@@ -410,6 +452,15 @@ function initWasherMethod() {
                         title: {
                             display: true,
                             text: 'x'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (Math.abs(value) < 0.01) return '0';
+                                return value.toFixed(1);
+                            }
                         }
                     },
                     y: {
@@ -417,7 +468,23 @@ function initWasherMethod() {
                         title: {
                             display: true,
                             text: 'y'
+                        },
+                        min: yMin,
+                        max: yMax,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (Math.abs(value) < 0.01) return '0';
+                                return value.toFixed(1);
+                            }
                         }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
                     }
                 }
             }
@@ -533,15 +600,25 @@ function initCalculatorVisualizations() {
         const numPoints = 100;
         const step = (upperBound - lowerBound) / numPoints;
         
+        // Track min and max y values
+        let minY = Infinity;
+        let maxY = -Infinity;
+        
         for (let i = 0; i <= numPoints; i++) {
             const x = lowerBound + i * step;
             try {
                 const y = evaluateFunction(funcStr, x);
                 plotPoints.push({ x, y });
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
             } catch (error) {
                 console.warn('Error evaluating function at x =', x, ':', error);
             }
         }
+        
+        // Store y-axis limits for use in plot creation
+        window.calculatorYMin = Math.min(minY - (maxY - minY) * 0.1, 0);
+        window.calculatorYMax = maxY + (maxY - minY) * 0.1;
         
         return [{
             label: `f(x) = ${funcStr}`,
@@ -559,6 +636,10 @@ function initCalculatorVisualizations() {
         const numPoints = 100;
         const step = (upperBound - lowerBound) / numPoints;
         
+        // Track min and max y values
+        let minY = Infinity;
+        let maxY = -Infinity;
+        
         for (let i = 0; i <= numPoints; i++) {
             const x = lowerBound + i * step;
             try {
@@ -566,10 +647,16 @@ function initCalculatorVisualizations() {
                 const innerY = evaluateFunction(innerFuncStr, x);
                 outerPoints.push({ x, y: outerY });
                 innerPoints.push({ x, y: innerY });
+                minY = Math.min(minY, outerY, innerY);
+                maxY = Math.max(maxY, outerY, innerY);
             } catch (error) {
                 console.warn('Error evaluating function at x =', x, ':', error);
             }
         }
+        
+        // Store y-axis limits for use in plot creation
+        window.calculatorYMin = Math.min(minY - (maxY - minY) * 0.1, 0);
+        window.calculatorYMax = maxY + (maxY - minY) * 0.1;
         
         return [
             {
@@ -624,6 +711,15 @@ function initCalculatorVisualizations() {
                         title: {
                             display: true,
                             text: 'x'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (Math.abs(value) < 0.01) return '0';
+                                return value.toFixed(1);
+                            }
                         }
                     },
                     y: {
@@ -631,7 +727,23 @@ function initCalculatorVisualizations() {
                         title: {
                             display: true,
                             text: 'y'
+                        },
+                        min: window.calculatorYMin,
+                        max: window.calculatorYMax,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (Math.abs(value) < 0.01) return '0';
+                                return value.toFixed(1);
+                            }
                         }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
                     }
                 }
             }
