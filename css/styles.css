@@ -1,0 +1,422 @@
+/* Global Styles */
+:root {
+    --primary-color: #2a69ac;
+    --secondary-color: #7fb3d5;
+    --accent-color: #f39c12;
+    --background-color: #f8f9fa;
+    --text-color: #333;
+    --border-color: #e0e0e0;
+    --success-color: #2ecc71;
+    --error-color: #e74c3c;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica','Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 0.5em;
+    color: var(--primary-color);
+}
+
+p {
+    margin-bottom: 1em;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+a:hover {
+    color: var(--secondary-color);
+}
+
+ul, ol {
+    margin-left: 20px;
+    margin-bottom: 1em;
+}
+
+/* Button Styles */
+.btn, button {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 16px;
+}
+
+.btn:hover, button:hover {
+    background-color: var(--secondary-color);
+}
+
+.update-btn {
+    background-color: var(--accent-color);
+}
+
+.update-btn:hover {
+    background-color: #e67e22;
+}
+
+/* Header */
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 30px 0;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: white;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+/* Navigation */
+nav {
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+nav ul {
+    display: flex;
+    justify-content: center;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+nav li {
+    margin: 0;
+    padding: 0;
+}
+
+nav a {
+    display: block;
+    padding: 15px 20px;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+}
+
+nav a.active {
+    border-bottom: 3px solid var(--accent-color);
+    color: var(--primary-color);
+}
+
+nav a:hover {
+    border-bottom: 3px solid var(--secondary-color);
+}
+
+/* Main Content */
+main {
+    padding: 30px 0;
+}
+
+section {
+    padding: 20px 0;
+    display: none;
+}
+
+section.active {
+    display: block;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.text-content {
+    flex: 1;
+    min-width: 300px;
+}
+
+.visual-content {
+    flex: 1;
+    min-width: 300px;
+}
+
+.math-block {
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 15px;
+    border-radius: 4px;
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+.call-to-action {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: var(--secondary-color);
+    color: white;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Disk & Washer Method Sections */
+.input-controls {
+    margin-top: 20px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.input-group input, .input-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.plot-container, .model-container {
+    height: 300px;
+    background-color: white;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.model-container {
+    height: 400px;
+}
+
+.calculation-result {
+    background-color: white;
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.result {
+    font-weight: 500;
+    margin-top: 10px;
+    color: var(--primary-color);
+}
+
+/* Examples Section */
+.example-card {
+    background-color: white;
+    margin-bottom: 30px;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.example-card h3 {
+    margin-top: 0;
+}
+
+.solution {
+    display: none;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.example-visualization {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.example-plot {
+    height: 250px;
+}
+
+/* Calculator Section */
+.calculator-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.calculator-form, .calculator-result {
+    flex: 1;
+    min-width: 300px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+/* Footer */
+footer {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    margin-top: 50px;
+}
+
+footer p {
+    margin: 5px 0;
+}
+
+footer a {
+    color: white;
+    text-decoration: underline;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    nav ul {
+        flex-direction: column;
+    }
+    
+    nav a {
+        border-bottom: none;
+        border-left: 3px solid transparent;
+    }
+    
+    nav a.active {
+        border-bottom: none;
+        border-left: 3px solid var(--accent-color);
+    }
+    
+    nav a:hover {
+        border-bottom: none;
+        border-left: 3px solid var(--secondary-color);
+    }
+    
+    .content-wrapper {
+        flex-direction: column;
+    }
+    
+    .text-content, .visual-content {
+        width: 100%;
+    }
+}
+
+/* Intro Image */
+.intro-image {
+    max-width: 100%;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Show/Hide Solution Button */
+.show-solution-btn {
+    margin-top: 15px;
+}
+
+/* Intro Animation */
+.intro-animation-container {
+    height: 300px;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.webgl-error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: var(--error-color);
+    text-align: center;
+    padding: 20px;
+}
+
+.error-container {
+    max-width: 80%;
+}
